@@ -1,2 +1,2 @@
 include ':app'
-rootProject.name = "InjectPlu"
+rootProject.name = "com.ccnio.InjectPlu"
