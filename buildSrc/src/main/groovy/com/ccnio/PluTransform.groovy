@@ -177,6 +177,66 @@ class PluTransform extends Transform {
         return TransformManager.SCOPE_FULL_PROJECT
 //等同ImmutableSet.of(Scope.PROJECT, Scope.SUB_PROJECTS, Scope.EXTERNAL_LIBRARIES);
     }
+    /**
+    
+     gradle插件应该在application模块引入还是library模块引入？
+目前，我们的插件都是直接在application模块中引入的，那么多模块情况下怎么办？每个模块都要引入吗？可以只在主模块引入吗？应该只在主模块引入吗？
+
+4.1.1 只在主模块引入
+我们知道，butterknife是需要在每个模块都引入的，其实，对于多模块来说，我们完全可以只在application主模块中引入插件，这里要注意Transform中的getScopes()方法：
+
+    @Override
+    Set<? super QualifiedContent.Scope> getScopes() {
+        //此次是只允许在主module（build.gradle中含有com.android.application插件）
+        //所以我们需要修改所有的module
+        return TransformManager.SCOPE_FULL_PROJECT
+
+    }
+
+这里的SCOPE_FULL_PROJECT其实是这样的：
+
+        SCOPE_FULL_PROJECT = Sets.immutableEnumSet(Scope.PROJECT, new Scope[]{Scope.SUB_PROJECTS, Scope.EXTERNAL_LIBRARIES});
+
+说明这里处理的模块包括本模块，子模块以及第三方jar包，这样我们就能在主模块中处理所有的class文件了，可见我们是可以只在主模块中引入的，这样做的话，所有子模块会以jar包的形式作为输入。
+
+4.1.2 在每个模块都引入
+那么如果想要在每个module中都引入该如何做呢？
+首先是注册方式要修改：
+
+    @Override
+    void apply(Project project) {
+        project.getExtensions()
+                .create("methodTrace", MethodTraceExtension.class)
+        def extension = project.getExtensions().findByType(AppExtension.class)
+        def isForApplication = true
+        if (extension == null) {
+            //说明当前使用在library中
+            extension = project.getExtensions().findByType(LibraryExtension.class)
+            isForApplication = false
+        }
+        extension.registerTransform(new MethodTraceTransform(project,isForApplication))
+
+    }
+
+关键是我们在Transform中要记录当前是应用于主模块还是子模块了。
+这种模式下，每一个模块都会执行自己的transform()方法，所以这里的getScopes()方法要做些修改：
+
+ @Override
+    Set<? super QualifiedContent.Scope> getScopes() {
+        def scopes = new HashSet()
+        scopes.add(QualifiedContent.Scope.PROJECT)
+        if (isForApplication) {
+            //application module中加入此项可以处理第三方jar包
+            scopes.add(QualifiedContent.Scope.EXTERNAL_LIBRARIES)
+        }
+        return scopes
+    }
+这里对于主模块的情况下应该额外处理第三方jar包，子模块只要处理自己的项目代码即可。
+其实进过实验，所有子模块的依赖的第三方jar包只会在处理主模块中输入，换句话说子模块是永远不可能处理第三方jar包的。
+    
+    **/
+    
+    
 
     /**
      * 是否支持增量编译，返回true的话表示支持，这个时候可以获取Input状态
