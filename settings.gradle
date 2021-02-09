@@ -1,2 +1,3 @@
+include ':moduel-library'
 include ':app'
 rootProject.name = "com.ccnio.InjectPlu"

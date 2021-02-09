@@ -17,6 +17,13 @@ class Log {
         }
     }
 
+    static void d(String tag, String info) {
+        if (null != info && null != logger) {
+            logger.debug("$tag >>> " + info)
+            println("$tag d>>> " + info)
+        }
+    }
+
     static void i(String info) {
         if (null != info && null != logger) {
             logger.info("InjectPlu >>> " + info)

@@ -1,5 +1,17 @@
+buildscript {
+    ext.kotlin_version = '1.4.30'
+    repositories {
+        maven { url 'http://maven.aliyun.com/nexus/content/groups/public/' }
+        mavenCentral()
+        jcenter()
+    }
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
 apply plugin: 'groovy'
-
+apply plugin: 'java-gradle-plugin'
+apply plugin: 'kotlin'
 repositories {
     jcenter()
     google()
@@ -8,8 +20,6 @@ repositories {
 dependencies {
     implementation gradleApi()
     implementation localGroovy()
-}
-
-dependencies {
     implementation 'com.android.tools.build:gradle:4.1.2'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
 }
