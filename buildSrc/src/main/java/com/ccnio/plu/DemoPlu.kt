@@ -5,11 +5,14 @@ import com.android.build.gradle.AppPlugin
 import com.android.build.gradle.LibraryExtension
 import com.android.build.gradle.LibraryPlugin
 import com.android.build.gradle.api.BaseVariant
+import com.android.build.gradle.internal.res.GenerateLibraryRFileTask
+import com.android.build.gradle.internal.res.LinkApplicationAndroidResourcesTask
 import com.ccnio.utils.Log
 import groovy.util.XmlSlurper
 import org.gradle.api.DomainObjectSet
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Created by jianfeng.li on 21-2-9.
@@ -24,8 +27,9 @@ class DemoPlu : Plugin<Project> {
         AppPlugin: id 'com.android.application'
         LibraryPlugin: id 'com.android.library'
         AppExtension/LibraryExtension: build.gradle 里的 android {}
-        Variant = ProductFlavor x BuildType
-        variant.sourceSets[0].manifestFile
+        Variant： ProductFlavor x BuildType
+        ManifestFile获取：variant.sourceSets[0].manifestFile
+        PackageName获取
          */
         project.plugins.all { plugin ->
             when (plugin) {
@@ -36,7 +40,7 @@ class DemoPlu : Plugin<Project> {
                 }
                 is LibraryPlugin -> {
                     val libraryExtension =
-                        project.extensions.getByType(LibraryExtension::class.java)
+                            project.extensions.getByType(LibraryExtension::class.java)
                     Log.d(TAG, "plugin: LibraryPlugin; libExtension = $libraryExtension")
                     configureR2Generation(project, libraryExtension.libraryVariants)
                 }
@@ -56,12 +60,12 @@ class DemoPlu : Plugin<Project> {
     }
 
     private fun configureR2Generation(
-        project: Project,
-        variants: DomainObjectSet<out BaseVariant>
+            project: Project,
+            variants: DomainObjectSet<out BaseVariant>
     ) {
         variants.all { variant ->
             val outputDir = project.buildDir.resolve(
-                "generated/source/r2/${variant.dirName}"
+                    "generated/source/r2/${variant.dirName}"
             )
 //            > Configure project :app
 //            DemoPlu d>>> configureR2Generation: outputDir = /home/lijf/code/InjectPlu/app/build/generated/source/r2/debug
@@ -73,23 +77,31 @@ class DemoPlu : Plugin<Project> {
             Log.d(TAG, "configureR2Generation: outputDir = $outputDir")
 //
             val rPackage = getPackageName(variant)
-//            val once = AtomicBoolean()
-//            variant.outputs.all { output ->
+//            > Configure project :app
+//            DemoPlu d>>> packageName = com.ccnio
+//            DemoPlu d>>> packageName = com.ccnio
+//
+//            > Configure project :moduel-library
+//            DemoPlu d>>> packageName = com.ccnio.lib
+//            DemoPlu d>>> packageName = com.ccnio.lib
+            Log.d(TAG, "packageName = $rPackage")
+            val once = AtomicBoolean()
+            variant.outputs.all { output ->
 //                // Though there might be multiple outputs, their R files are all the same. Thus, we only
 //                // need to configure the task once with the R.java input and action.
-//                if (once.compareAndSet(false, true)) {
-//                    val processResources = output.processResourcesProvider.get() // TODO lazy
-//
+                if (once.compareAndSet(false, true)) {
+                    val processResources = output.processResourcesProvider.get() // TODO lazy
+
 //                    // TODO: switch to better API once exists in AGP (https://issuetracker.google.com/118668005)
-//                    val rFile =
-//                        project.files(
-//                            when (processResources) {
-//                                is GenerateLibraryRFileTask -> processResources.textSymbolOutputFile
-//                                is LinkApplicationAndroidResourcesTask -> processResources.textSymbolOutputFile
-//                                else -> throw RuntimeException(
-//                                    "Minimum supported Android Gradle Plugin is 3.3.0")
-//                            })
-//                            .builtBy(processResources)
+                    val rFile =
+                        project.files(
+                            when (processResources) {
+                                is GenerateLibraryRFileTask -> processResources.getTextSymbolOutputFile()//textSymbolOutputFile
+                                is LinkApplicationAndroidResourcesTask -> processResources.getTextSymbolOutputFile()//textSymbolOutputFile
+                                else -> throw RuntimeException(
+                                    "Minimum supported Android Gradle Plugin is 3.3.0")
+                            })
+                            .builtBy(processResources)
 //                    val generate = project.tasks.create("generate${variant.name.capitalize()}R2", R2Generator::class.java) {
 //                        it.outputDir = outputDir
 //                        it.rFile = rFile
@@ -97,8 +109,8 @@ class DemoPlu : Plugin<Project> {
 //                        it.className = "R2"
 //                    }
 //                    variant.registerJavaGeneratingTask(generate, outputDir)
-//                }
-//            }
+                }
+            }
         }
     }
 
@@ -107,6 +119,13 @@ class DemoPlu : Plugin<Project> {
     private fun getPackageName(variant: BaseVariant): String {
         val slurper = XmlSlurper(false, false)
         val list = variant.sourceSets.map { it.manifestFile }
+//        > Configure project :app
+//        DemoPlu d>>> getPackageName: mainfestFiles = [C:\code\InjectPlu\app\src\main\AndroidManifest.xml, C:\code\InjectPlu\app\src\debug\AndroidManifest.xml]
+//        DemoPlu d>>> getPackageName: mainfestFiles = [C:\code\InjectPlu\app\src\main\AndroidManifest.xml, C:\code\InjectPlu\app\src\release\AndroidManifest.xml]
+//
+//        > Configure project :moduel-library
+//        DemoPlu d>>> getPackageName: mainfestFiles = [C:\code\InjectPlu\moduel-library\src\main\AndroidManifest.xml, C:\code\InjectPlu\moduel-library\src\debug\AndroidManifest.xml]
+//        DemoPlu d>>> getPackageName: mainfestFiles = [C:\code\InjectPlu\moduel-library\src\main\AndroidManifest.xml, C:\code\InjectPlu\moduel-library\src\release\AndroidManifest.xml]
         Log.d(TAG, "getPackageName: mainfestFiles = $list")
 
         // According to the documentation, the earlier files in the list are meant to be overridden by the later ones.

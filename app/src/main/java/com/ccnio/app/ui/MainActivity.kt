@@ -1,4 +1,4 @@
-package com.ccnio
+package com.ccnio.app.ui
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -7,6 +7,7 @@ import android.util.Log
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.edit
+import com.ccnio.app.R
 import com.ccnio.lib.LibUtil
 
 private const val TAG = "MainActivity"
@@ -20,6 +21,7 @@ class MainActivity : AppCompatActivity() {
         prefer = getSharedPreferences("text.share", Context.MODE_PRIVATE)
         Log.d("TAG2", "onCreate: test")
         LibUtil().lib()
+        val a = getString(R.string.lib_str)
         findViewById<View>(R.id.trueView).setOnClickListener {
             prefer.edit {
                 putString(
@@ -43,7 +45,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         findViewById<View>(R.id.getView).setOnClickListener {
-            val boolean = prefer.getString(key,"")
+            val boolean = prefer.getString(key, "")
             Log.d(TAG, "onCreate: prefer = $boolean")
         }
     }
